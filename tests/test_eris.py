@@ -3,19 +3,22 @@
 import unittest
 from cStringIO import StringIO
 import sys
-
-sys.path.append('plex')
-from Plex import *
+sys.path.append('../plex/lib')
 
 import eris
 
 class LexTest(object):
     def mk_scanner(self, source):
-        return eris.ErisScanner(source)
+        return eris.Scanner(source)
 
     def assertScan(self, src, exp_tokens):
         s = self.mk_scanner(src)
-        self.assertEqual(list(s.tokens()), exp_tokens)
+        tokens = list(s.tokens())
+        self.assertEqual(tokens, exp_tokens)
+
+    def assertScanFails(self, src, e):
+        s = self.mk_scanner(src)
+        self.assertRaises(e, list, s.tokens())
 
 
 class TestNumber(unittest.TestCase, LexTest):
@@ -56,6 +59,7 @@ class TestComment(unittest.TestCase, LexTest):
         src = "42 # comment"
         self.assertScan(src, [('number', '42')])
 
+
 class TestString(unittest.TestCase, LexTest):
     def test_string(self):
         src = '"master shake"'
@@ -74,6 +78,7 @@ class TestMultiple(unittest.TestCase, LexTest):
         src = "foo"
         self.assertScan(src, [('identifier', 'foo')])
 
+
 class TestPunctuation(unittest.TestCase, LexTest):
     def test_punct(self):
         src = "42 + 420"
@@ -84,6 +89,46 @@ class TestPunctuation(unittest.TestCase, LexTest):
         ])
 
 
+class TestIf(unittest.TestCase, LexTest):
+    def test_if(self):
+        src = """
+            if (10) {
+                statement    
+            }
+        """
+
+        self.assertScan(src, [
+            ('reserved', 'if'),
+            ('(', '('),
+            ('number', '10'),
+            (')', ')'),
+            ('{', '{'),
+            ('identifier', 'statement'),
+            ('}', '}'),
+        ])
+
+
+class TestParenthesis(unittest.TestCase, LexTest):
+    def test_parenthesis(self):
+        src = "(1 + 2)"
+        self.assertScan(src, [
+            ('(', '('),
+            ('number', '1'),
+            ('+', '+'),
+            ('number', '2'),
+            (')', ')'),
+        ])
+
+    def test_balanced(self):
+        src = ")"
+        self.assertScanFails(src, eris.ScannerError)
+        src = "(1 + 2))"
+        self.assertScanFails(src, eris.ScannerError)
+        src = ")"
+        self.assertScanFails(src, eris.ScannerError)
+
+
+
 class TestFunction(unittest.TestCase, LexTest):
     def test_function(self):
         src = """
@@ -91,9 +136,7 @@ class TestFunction(unittest.TestCase, LexTest):
                 statement1
                 statement2
             }
-            b = a;
         """
-
         self.assertScan(src, [
             ('identifier', 'a'),
             ('=', '='),
