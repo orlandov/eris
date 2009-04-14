@@ -1,1 +1,9 @@
-Eris - an proof of concept language
+Eris - An proof of concept language.
+
+This is my experimental foray into the world of lexical analysis and abstract
+syntax trees.
+
+References used:
+
+http://llvm.org/docs/tutorial/index.html
+http://www.cosc.canterbury.ac.nz/greg.ewing/python/Plex/
